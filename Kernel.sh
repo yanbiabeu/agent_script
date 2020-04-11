@@ -10,3 +10,5 @@ uname -p
 uname
 free -m
 iostat
+cat /proc/meminfo
+cat /proc/cpuinfo
