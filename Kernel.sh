@@ -10,3 +10,5 @@ uname -p
 uname
 free -m
 iostat
+sar -u
+nproc
