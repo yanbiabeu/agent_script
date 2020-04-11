@@ -10,6 +10,8 @@ uname -p
 uname
 free -m
 iostat
+cat /proc/meminfo
+cat /proc/cpuinfo
 cat /etc/os-release
 sar -u
 nproc
