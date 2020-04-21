@@ -1,0 +1,97 @@
+---
+- hosts: web
+  tasks:
+           - name: Update the system
+             yum: name='*' state=latest
+           - name: Install apache
+             yum: name=httpd state=present
+           - name: Start apache service
+             service: name=httpd state=started enabled=yes
+#          - name: Configure Firewall
+#            lineinfile:
+#                   path: /etc/sysconfig/iptables
+#                   regexp: '-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT'
+#                   inserafter: '-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT'
+#                   line: '-A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT'
+#          - name: Restart Iptables
+#            service: name=iptables state=restarted
+
+           - name: Install Mysql on Centos and redhat
+             yum: name=mysql-server state=present
+             when: ansible_distribution == 'CentOS' or ansible_distribution == 'Redhat'
+
+           - name: Install mysql on Amazon
+             yum: name=mariadb state=present
+             when: ansible_distribution == 'Amazon'
+
+           - name: Start mysql in Centos and Redhat
+             service: name=mysqld state=started
+             when: ansible_distribution == 'CentOS' or ansible_distribution == 'Redhat'
+           - name: Start mysql in Amazon ec2
+             service: name=mariadb state=started
+             when: ansible_distribution == 'Amazon'
+
+           - name: Install ansible package dependency for mysql
+             yum: name=MySQL-python state=present 
+
+
+           - name: Copy cnf file to target server 
+             copy:
+                 src: /etc/ansible/my.cnf
+                 dest: /root/.my.cnf
+                 remote_src: no
+           - name: Create database
+             mysql_db:
+                 name: webserver
+                 state: present
+           - name: create database user
+             mysql_user:
+                 name: oracle
+                 password: school1
+                 priv: '*.*:ALL'
+                 state: present
+
+           - name: Install Php
+             yum:
+                 name: "{{ item }}"
+                 state: present
+             with_items:
+                 - php
+                 - php-gd
+                 - php-mysql
+
+           - name: copy info.php
+             copy:
+                src: /etc/ansible/info.php
+                dest: /var/www/html/info.php
+                remote_src: no
+           - name: Download and extract wordpress
+             unarchive:
+                   src: https://wordpress.org/wordpress-5.1.1.tar.gz
+                   dest: /tmp
+                   remote_src: yes
+
+           - name: Copy wordpress 
+             copy:
+                src: /tmp/wordpress/
+                dest: /var/www/html
+                owner: apache
+                group: apache
+                remote_src: yes
+             notify:
+                  - restart apache
+
+           - name: Configure Database connection
+             command: "{{ item }}"
+             with_items:
+                 - cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
+                 - sed -i "s/^define( 'DB_NAME',.*/define( 'DB_NAME', 'webserver' );/" /var/www/html/wp-config.php
+                 - sed -i "s/^define( 'DB_USER',.*/define( 'DB_USER', 'oracle' );/" /var/www/html/wp-config.php
+                 - sed -i "s/^define( 'DB_PASSWORD',.*/define( 'DB_PASSWORD', 'school1' );/" /var/www/html/wp-config.php
+             notify: 
+                 - restart apache 
+
+
+  handlers:
+     - name: restart apache 
+       service: name=httpd state=restarted

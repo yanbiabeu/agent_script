@@ -1,0 +1,12 @@
+---
+- hosts: localhost
+  tasks:
+  - name: Gather facts
+    action: ec2_facts
+ 
+  - name: Stop ec2 instance
+    local_action:
+        module: ec2
+        region: us-east-2a
+        instace_id: ['i-0cc09263ab2e5e3e4']
+        state: stopped
